@@ -4,7 +4,7 @@ from django.http import HttpResponse
 import psycopg2
 import math
 import json
-from django.db import connection
+from django.db import connection, IntegrityError
 from datetime import datetime, date
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F
@@ -261,10 +261,15 @@ def create_new_ad(request):
                     response.status_code = 422
                     return response
             if request.user.id == int(data["owner"]):
-                category = Items_categories.objects.get(id=data["category"])
-                district = Districts.objects.get(name=data["district"])
-                status = Statuses.objects.get(name=data["status"])
-                owner = User.objects.get(id=data["owner"])
+                try:
+                    category = Items_categories.objects.get(id=data["category"])
+                    district = Districts.objects.get(name=data["district"])
+                    status = Statuses.objects.get(name=data["status"])
+                    owner = User.objects.get(id=data["owner"])
+                except models.ObjectDoesNotExist:
+                    response = JsonResponse({"errors": {"create_failed": "value_doesnt_exist"}})
+                    response.status_code = 422
+                    return response
                 for field in optional_fields:
                     if field not in data:
                         data[field] = None
@@ -368,6 +373,10 @@ def update_profile(request):
                     return response
             if request.user.id == int(data["user_id"]):
                 current_user = User.objects.get(id=data['user_id'])
+                if current_user.deleted_at != None:
+                    response = JsonResponse({"errors": {"update_failed": "user_doesnt_exist"}})
+                    response.status_code = 422
+                    return response
                 if "city" not in data:
                     data["city"] = current_user.city
                 if "street" not in data:
@@ -379,20 +388,99 @@ def update_profile(request):
                 if "district" not in data:
                     district = current_user.district
                 else:
-                    district = Districts.objects.get(name=data["district"])
+                    try:
+                        district = Districts.objects.get(name=data["district"])
+                    except models.ObjectDoesNotExist:
+                        response = JsonResponse({"errors": {"update_failed": "value_doesnt_exist"}})
+                        response.status_code = 422
+                        return response
                 """
                 update hesla, emailu bude ked tak samostatny endpoint
                 """
-                User.objects.filter(id=data['user_id']).update(
-                    last_name=data["last_name"],
-                    first_name=data["first_name"],
-                    username=data["username"],
-                    district=district,
-                    city=data["city"],
-                    street = data["street"],
-                    zip_code = data["zip_code"],
-                    phone = data["phone"]
-                )
+                try:
+                    User.objects.filter(id=data['user_id']).update(
+                        last_name=data["last_name"],
+                        first_name=data["first_name"],
+                        username=data["username"],
+                        district=district,
+                        city=data["city"],
+                        street = data["street"],
+                        zip_code = data["zip_code"],
+                        phone = data["phone"]
+                    )
+                except IntegrityError:
+                    response = JsonResponse({"errors": {"update_failed": "inavlid_value"}})
+                    response.status_code = 422
+                    return response
+                response = HttpResponse()
+                response.status_code = 200
+                return response
+            else:
+                response = JsonResponse({"errors": {"update_failed": "accesing_diferent_user"}})
+                response.status_code = 403
+                return response
+        else:
+            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response.status_code = 401
+            return response
+
+
+@csrf_exempt
+def update_ad(request):
+    if request.method == 'PUT':
+        if request.user.is_authenticated:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except BaseException:
+                response = JsonResponse({"errors": "missing_required_fields"})
+                response.status_code = 422
+                return response
+            required_fields = ["ad_id", "user_id", "name", "description", "price", "city", "category", "status", "district"]
+            optional_fields = ["picture", "street", "zip_code"]
+            errors = []
+            for req in required_fields:
+                if req not in data:
+                    errors.append({req: "required"})
+            else:
+                if len(errors) != 0:
+                    response = JsonResponse({"errors": errors})
+                    response.status_code = 422
+                    return response
+            if request.user.id == int(data["user_id"]):
+                try:
+                    ad = Advertisments.objects.get(id=data["ad_id"])
+                    district = Districts.objects.get(name=data["district"])
+                    status = Statuses.objects.get(name=data["status"])
+                    if ad.deleted_at != None:
+                        raise models.ObjectDoesNotExist
+                except models.ObjectDoesNotExist:
+                    response = JsonResponse({"errors": {"update_failed": "value_doesnt_exist"}})
+                    response.status_code = 422
+                    return response
+
+                if "picture" not in data:
+                    data["picture"] = ad.picture
+                if "street" not in data:
+                    data["street"] = ad.street
+                if "zip_code" not in data:
+                    data["zip_code"] = ad.zip_code
+                try:
+                    Advertisments.objects.filter(id=data['ad_id']).update(
+                        name=data["name"],
+                        description =data["description"],
+                        prize =data["price"],
+                        picture =data["picture"],
+                        city =data["city"],
+                        street =data["street"],
+                        zip_code =data["zip_code"],
+                        category =data["category"],
+                        status =status,
+                        district = district
+                    )
+                except IntegrityError:
+                    response = JsonResponse({"errors": {"update_failed": "invalid_value"}})
+                    response.status_code = 422
+                    return response
                 response = HttpResponse()
                 response.status_code = 200
                 return response
