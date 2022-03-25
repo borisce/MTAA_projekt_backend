@@ -492,3 +492,85 @@ def update_ad(request):
             response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
             return response
+
+@csrf_exempt
+def delete_ad(request):
+    if request.method == 'DELETE':
+        if request.user.is_authenticated:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except BaseException:
+                response = JsonResponse({"errors": "missing_required_fields"})
+                response.status_code = 422
+                return response
+            required_fields = ["ad_id"]
+            errors = []
+            for req in required_fields:
+                if req not in data:
+                    errors.append({req: "required"})
+            else:
+                if len(errors) != 0:
+                    response = JsonResponse({"errors": errors})
+                    response.status_code = 422
+                    return response
+            try:
+                ad = Advertisments.objects.get(id=data["ad_id"])
+            except models.ObjectDoesNotExist:
+                response = JsonResponse({"errors": {"delete_failed": "ad_doesnt_exist"}})
+                response.status_code = 422
+                return response
+            if ad.owner.id == request.user.id:
+                Advertisments.objects.filter(id=data["ad_id"]).delete()
+                response = HttpResponse()
+                response.status_code = 200
+                return response
+            else:
+                response = JsonResponse({"errors": "ad_belongs_to_different_user"})
+                response.status_code = 403
+                return response
+        else:
+            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response.status_code = 401
+            return response
+
+
+@csrf_exempt
+def delete_favorite(request):
+    if request.method == 'DELETE':
+        if request.user.is_authenticated:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except BaseException:
+                response = JsonResponse({"errors": "missing_required_fields"})
+                response.status_code = 422
+                return response
+            required_fields = ["ad_id"]
+            errors = []
+            for req in required_fields:
+                if req not in data:
+                    errors.append({req: "required"})
+            else:
+                if len(errors) != 0:
+                    response = JsonResponse({"errors": errors})
+                    response.status_code = 422
+                    return response
+            try:
+                ad = Favorite_advertisments.objects.get(ad_id=data["ad_id"], user_id=request.user.id)
+                if ad.user_id == request.user.id:
+                    Favorite_advertisments.objects.filter(ad_id=data["ad_id"], user_id=request.user.id).delete()
+                    response = HttpResponse()
+                    response.status_code = 200
+                    return response
+                else:
+                    response = JsonResponse({"errors": "ad_belongs_to_different_user"})
+                    response.status_code = 403
+                    return response
+            except models.ObjectDoesNotExist:
+                response = JsonResponse({"errors": {"delete_failed": "ad_is_not_favorite"}})
+                response.status_code = 422
+                return response
+
+        else:
+            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response.status_code = 401
+            return response
