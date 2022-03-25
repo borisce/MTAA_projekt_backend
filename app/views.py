@@ -247,7 +247,7 @@ def create_new_ad(request):
     if request.method == 'POST':
         if request.user.is_authenticated:
             data = json.loads(request.body.decode("utf-8"))
-            required_fields = ["user_name", "price", "description", "district", "city", "category", "status", "owner"]
+            required_fields = ["name", "price", "description", "district", "city", "category", "status", "owner"]
             errors = []
             for req in required_fields:
                 if req not in data:
@@ -255,7 +255,7 @@ def create_new_ad(request):
             else:
                 if len(errors) != 0:
                     response = JsonResponse({"errors": errors})
-                    response.status_code = 406
+                    response.status_code = 422
                     return response
             if str(request.user.id) == data["owner"]:
                 category = Items_categories.objects.get(id=data["category"])
@@ -269,7 +269,7 @@ def create_new_ad(request):
                 if "street" not in data:
                     data["street"] = None
                 new = Advertisments(
-                    name=data["user_name"],
+                    name=data["name"],
                     description=data["description"],
                     prize=data["price"],
                     picture=data["picture"],

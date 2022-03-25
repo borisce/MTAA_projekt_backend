@@ -32,3 +32,7 @@ class Advertisments(models.Model):
     status = models.ForeignKey(Statuses, on_delete=models.CASCADE)
     district = models.ForeignKey(Districts, on_delete=models.CASCADE)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
+
+class Favorite_advertisments(models.Model):
+    ad  = models.ForeignKey(Advertisments, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
