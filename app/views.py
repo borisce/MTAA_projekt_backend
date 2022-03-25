@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F
 from django.db.models import Q
 from django.contrib.auth.models import auth
-from .models import User
+from .models import User, Items_categories, Districts, Statuses, Advertisments
 
 
 @csrf_exempt
@@ -242,3 +242,54 @@ def logout(request):
             return response
 
 
+@csrf_exempt
+def create_new_ad(request):
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            data = json.loads(request.body.decode("utf-8"))
+            required_fields = ["user_name", "price", "description", "district", "city", "category", "status", "owner"]
+            errors = []
+            for req in required_fields:
+                if req not in data:
+                    errors.append({req: "required"})
+            else:
+                if len(errors) != 0:
+                    response = JsonResponse({"errors": errors})
+                    response.status_code = 406
+                    return response
+            if str(request.user.id) == data["owner"]:
+                category = Items_categories.objects.get(id=data["category"])
+                district = Districts.objects.get(name=data["district"])
+                status = Statuses.objects.get(name=data["status"])
+                owner = User.objects.get(id=data["owner"])
+                if "picture" not in data:
+                    data["picture"] = None
+                if "zip_code" not in data:
+                    data["zip_code"] = None
+                if "street" not in data:
+                    data["street"] = None
+                new = Advertisments(
+                    name=data["user_name"],
+                    description=data["description"],
+                    prize=data["price"],
+                    picture=data["picture"],
+                    city=data["city"],
+                    street=data["street"],
+                    zip_code=data["zip_code"],
+                    category=category,
+                    status=status,
+                    district=district,
+                    owner_id=owner.id
+                )
+                new.save()
+                response = HttpResponse()
+                response.status_code = 200
+                return response
+            else:
+                response = JsonResponse({"errors": {"create_failed": "accesing_diferent_user"}})
+                response.status_code = 403
+                return response
+        else:
+            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response.status_code = 401
+            return response
