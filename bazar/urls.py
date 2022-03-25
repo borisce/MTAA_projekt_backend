@@ -7,5 +7,6 @@ urlpatterns = [
     path('register/', views.register),
     path('login/', views.login),
     path('logout/', views.logout),
-    path('create_new_ad/', views.create_new_ad)
+    path('create_new_ad/', views.create_new_ad),
+    path('add_favourite_ads/', views.add_favourite_ads)
 ]

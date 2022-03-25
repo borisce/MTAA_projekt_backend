@@ -10,7 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F
 from django.db.models import Q
 from django.contrib.auth.models import auth
-from .models import User, Items_categories, Districts, Statuses, Advertisments
+from .models import User, Items_categories, Districts, Statuses, Advertisments, Favorite_advertisments
+from django.db import models
 
 
 @csrf_exempt
@@ -93,14 +94,13 @@ def register(request):
                             if phone_data[0] < '0' or phone_data[0] > '9':
                                 error += 1
                                 errors.append({"field": optional_parameters[i], "reasons": ["invalid phone number"]})
-                        for k in range(1,j):
+                        for k in range(1, j):
                             if phone_data[k] < '0' or phone_data[k] > '9':
                                 error += 1
                                 errors.append({"field": optional_parameters[i], "reasons": ["invalid phone number"]})
                         phone = data[optional_parameters[i]]
 
-
-        email_unique =User.objects.all().filter(Q(email=mail)).count()
+        email_unique = User.objects.all().filter(Q(email=mail)).count()
 
         if email_unique != 0:
             error += 1
@@ -112,7 +112,6 @@ def register(request):
             error += 1
             errors.append({"field": "user_name", "reasons": ["not_unique"]})
 
-
             # ak je nejaky parameter vadny alebo nie je zadany vrati sa error
         if error != 0:
             result = {
@@ -122,23 +121,22 @@ def register(request):
             response.status_code = 422
         else:
 
-
             # pridanie zaznamu do databazy
 
-            user_registration = User.objects.create_user(username = parameters_values[0], first_name = parameters_values[1],
-                                     last_name = parameters_values[2], email = parameters_values[3],
-                                     password = parameters_values[4], city = city,
-                                     street = street, zip_code = zip_code,
-                                     phone = phone)
+            user_registration = User.objects.create_user(username=parameters_values[0], first_name=parameters_values[1],
+                                                         last_name=parameters_values[2], email=parameters_values[3],
+                                                         password=parameters_values[4], city=city,
+                                                         street=street, zip_code=zip_code,
+                                                         phone=phone)
 
             user_registration.save()
-
 
             response = HttpResponse()
 
             response.status_code = 201
 
         return response
+
 
 @csrf_exempt
 def login(request):
@@ -202,9 +200,8 @@ def login(request):
 
                     errors.append({"login failed": "invalid credentials"})
 
-
                     result = {
-                            "errors": errors
+                        "errors": errors
                     }
 
                     response = JsonResponse(result)
@@ -246,7 +243,12 @@ def logout(request):
 def create_new_ad(request):
     if request.method == 'POST':
         if request.user.is_authenticated:
-            data = json.loads(request.body.decode("utf-8"))
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except BaseException:
+                response = JsonResponse({"errors": "missing_required_fields"})
+                response.status_code = 422
+                return response
             required_fields = ["name", "price", "description", "district", "city", "category", "status", "owner"]
             errors = []
             for req in required_fields:
@@ -257,7 +259,7 @@ def create_new_ad(request):
                     response = JsonResponse({"errors": errors})
                     response.status_code = 422
                     return response
-            if str(request.user.id) == data["owner"]:
+            if request.user.id == int(data["owner"]):
                 category = Items_categories.objects.get(id=data["category"])
                 district = Districts.objects.get(name=data["district"])
                 status = Statuses.objects.get(name=data["status"])
@@ -287,6 +289,57 @@ def create_new_ad(request):
                 return response
             else:
                 response = JsonResponse({"errors": {"create_failed": "accesing_diferent_user"}})
+                response.status_code = 403
+                return response
+        else:
+            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response.status_code = 401
+            return response
+
+
+@csrf_exempt
+def add_favourite_ads(request):
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except BaseException:
+                response = JsonResponse({"errors": "missing_required_fields"})
+                response.status_code = 422
+                return response
+            required_fields = ["ad_id", "user_id"]
+            errors = []
+            for req in required_fields:
+                if req not in data:
+                    errors.append({req: "required"})
+            else:
+                if len(errors) != 0:
+                    response = JsonResponse({"errors": errors})
+                    response.status_code = 422
+                    return response
+            if request.user.id == int(data["user_id"]):
+                try:
+                    ad = Advertisments.objects.get(id=data["ad_id"])
+                except models.ObjectDoesNotExist:
+                    response = JsonResponse({"errors": {"add_failed": "ad_doesnt_exist"}})
+                    response.status_code = 422
+                    return response
+                user = User.objects.get(id=data["user_id"])
+                ad_unique = Favorite_advertisments.objects.all().filter(Q(ad_id=data["ad_id"], user_id=data["user_id"])).count()
+                if ad_unique != 0:
+                    response = JsonResponse({"errors": {"add_failed": "already_in_favorites"}})
+                    response.status_code = 403
+                    return response
+                new = Favorite_advertisments(
+                    ad_id=ad.id,
+                    user_id=user.id
+                )
+                new.save()
+                response = HttpResponse()
+                response.status_code = 200
+                return response
+            else:
+                response = JsonResponse({"errors": {"add_failed": "accesing_diferent_user"}})
                 response.status_code = 403
                 return response
         else:
