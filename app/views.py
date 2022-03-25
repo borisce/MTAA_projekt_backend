@@ -250,6 +250,7 @@ def create_new_ad(request):
                 response.status_code = 422
                 return response
             required_fields = ["name", "price", "description", "district", "city", "category", "status", "owner"]
+            optional_fields = ["picture", "street", "zip_code"]
             errors = []
             for req in required_fields:
                 if req not in data:
@@ -264,12 +265,9 @@ def create_new_ad(request):
                 district = Districts.objects.get(name=data["district"])
                 status = Statuses.objects.get(name=data["status"])
                 owner = User.objects.get(id=data["owner"])
-                if "picture" not in data:
-                    data["picture"] = None
-                if "zip_code" not in data:
-                    data["zip_code"] = None
-                if "street" not in data:
-                    data["street"] = None
+                for field in optional_fields:
+                    if field not in data:
+                        data[field] = None
                 new = Advertisments(
                     name=data["name"],
                     description=data["description"],
@@ -335,6 +333,66 @@ def add_favourite_ads(request):
                     user_id=user.id
                 )
                 new.save()
+                response = HttpResponse()
+                response.status_code = 200
+                return response
+            else:
+                response = JsonResponse({"errors": {"add_failed": "accesing_diferent_user"}})
+                response.status_code = 403
+                return response
+        else:
+            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response.status_code = 401
+            return response
+
+@csrf_exempt
+def update_profile(request):
+    if request.method == 'PUT':
+        if request.user.is_authenticated:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+            except BaseException:
+                response = JsonResponse({"errors": "missing_required_fields"})
+                response.status_code = 422
+                return response
+            required_fields = ["user_id", "username", "first_name", "last_name"]
+            optional_fields = ["city", "street", "zip_code", "phone", "district"]
+            errors = []
+            for req in required_fields:
+                if req not in data:
+                    errors.append({req: "required"})
+            else:
+                if len(errors) != 0:
+                    response = JsonResponse({"errors": errors})
+                    response.status_code = 422
+                    return response
+            if request.user.id == int(data["user_id"]):
+                current_user = User.objects.get(id=data['user_id'])
+                if "city" not in data:
+                    data["city"] = current_user.city
+                if "street" not in data:
+                    data["street"] = current_user.street
+                if "zip_code" not in data:
+                    data["zip_code"] = current_user.zip_code
+                if "phone" not in data:
+                    data["phone"] = current_user.phone
+                if "district" not in data:
+                    district = current_user.district
+                else:
+                    district = Districts.objects.get(name=data["district"])
+                """
+                update hesla, emailu bude ked tak samostatny endpoint
+                """
+                User.objects.filter(id=data['user_id']).update(
+                    last_name=data["last_name"],
+                    first_name=data["first_name"],
+                    username=data["username"],
+                    district=district,
+                    city=data["city"],
+                    street = data["street"],
+                    zip_code = data["zip_code"],
+                    phone = data["phone"]
+                )
                 response = HttpResponse()
                 response.status_code = 200
                 return response
