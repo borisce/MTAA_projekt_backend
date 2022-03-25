@@ -26,7 +26,7 @@ def register(request):
 
         # nazvy parametrov ktore musia byt v body
         required_parameters = ["user_name", "first_name", "last_name", "email", "password"]
-        optional_parameters = ["city", "street", "zipcode", "phone"]
+        optional_parameters = ["city", "street", "zipcode", "phone", "district"]
 
         # pole v ktorom budu ulozene hodnoty parametrov
         parameters_values = []
@@ -78,7 +78,7 @@ def register(request):
             zip_code = None
             phone = None
 
-            for i in range(4):
+            for i in range(5):
                 # ziskanie hodnot textovych parametrov
                 if optional_parameters[i] in data:
                     if i == 0:
@@ -99,6 +99,19 @@ def register(request):
                                 error += 1
                                 errors.append({"field": optional_parameters[i], "reasons": ["invalid phone number"]})
                         phone = data[optional_parameters[i]]
+                    if i == 4:
+                        district_id = None
+                        district_name = data[optional_parameters[i]]
+                        district_exists = Districts.objects.all().filter(Q(name=district_name)).count()
+
+                        if district_exists == 0:
+                            error += 1
+                            errors.append({"field": "district", "reasons": ["district doesnt exists"]})
+                        else:
+
+                            district_id = Districts.objects.values_list('id').filter(Q(name=district_name))
+
+
 
         email_unique = User.objects.all().filter(Q(email=mail)).count()
 
@@ -127,7 +140,7 @@ def register(request):
                                                          last_name=parameters_values[2], email=parameters_values[3],
                                                          password=parameters_values[4], city=city,
                                                          street=street, zip_code=zip_code,
-                                                         phone=phone)
+                                                         phone=phone, district_id=district_id)
 
             user_registration.save()
 
@@ -224,7 +237,6 @@ def logout(request):
             return response
 
         else:
-            print("idee")
             errors = []
 
             errors.append({"logout_failed": "no_user_is_logged_in"})
@@ -237,6 +249,50 @@ def logout(request):
             response.status_code = 401
 
             return response
+
+@csrf_exempt
+def my_profile(request):
+
+    if request.method == 'GET':
+        if request.user.is_authenticated:
+
+            user_profile = User.objects.select_related('district').get(id=request.user.id)
+
+            items = {"user_name": user_profile.username,
+                    "first_name": user_profile.first_name,
+                    "last_name": user_profile.last_name,
+                    "email": user_profile.email,
+                    "district": user_profile.district.name,
+                    "city": user_profile.city,
+                    "zip_code": user_profile.zip_code,
+                    "street": user_profile.street,
+                    "phone": user_profile.phone
+                    }
+
+            result = {
+                "items": items
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 200
+
+            return response
+
+        else:
+            errors = []
+
+            errors.append({"unable_to_load_profile": "no_user_is_logged_in"})
+
+            result = {
+                "errors": errors
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 401
+
+            return response
+
+
 
 
 @csrf_exempt

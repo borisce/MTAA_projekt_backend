@@ -12,5 +12,6 @@ urlpatterns = [
     path('update_profile/', views.update_profile),
     path('update_ad/', views.update_ad),
     path('delete_ad/', views.delete_ad),
-    path('delete_favorite/', views.delete_favorite)
+    path('delete_favorite/', views.delete_favorite),
+    path('my_profile/', views.my_profile)
 ]
