@@ -281,7 +281,7 @@ def my_profile(request):
         else:
             errors = []
 
-            errors.append({"unable_to_load_profile": "no_user_is_logged_in"})
+            errors.append({"unable to load profile": "no user is logged in"})
 
             result = {
                 "errors": errors
@@ -292,31 +292,56 @@ def my_profile(request):
 
             return response
 
+
 @csrf_exempt
-def my_ads(request):
+def user_profile(request, id):
 
     if request.method == 'GET':
         if request.user.is_authenticated:
 
-            page = (request.GET.get('page', default="1"))
+            errors = []
+            count = User.objects.filter(id=id).count()
 
-            if not type(page) ==int:
-                page = 1
+            count = int(count)
 
-            page_number = page
-            page = (page-1) * 10
+            if count == 0:
+                errors.append({"unable to load user profile": "user not found"})
 
-            data = Advertisments.objects.filter(owner_id=request.user.id)[page:page + 10]
-            count = Advertisments.objects.filter(owner_id=request.user.id).count()
+                result = {
+                    "errors": errors
+                }
 
-            items = list(data.values('id', 'name', 'description', 'prize',
-                       'picture', 'city', 'street', 'zip_code', 'created_at', 'category__name',
-                       'district__name', 'status__name'))
+                response = JsonResponse(result)
+                response.status_code = 404
+                return response
 
-            count = float(count)
+            user_profile = User.objects.select_related('district').get(id=id)
 
-            #max_page = count / per_page
-            #max_page = int(math.ceil(max_page))
+
+            if user_profile.district == None:
+
+                items = {"user_name": user_profile.username,
+                         "first_name": user_profile.first_name,
+                         "last_name": user_profile.last_name,
+                         "email": user_profile.email,
+                         "district": None,
+                         "city": user_profile.city,
+                         "zip_code": user_profile.zip_code,
+                         "street": user_profile.street,
+                         "phone": user_profile.phone
+                         }
+            else:
+
+                items = {"user_name": user_profile.username,
+                         "first_name": user_profile.first_name,
+                         "last_name": user_profile.last_name,
+                         "email": user_profile.email,
+                         "district": user_profile.district.name,
+                         "city": user_profile.city,
+                         "zip_code": user_profile.zip_code,
+                         "street": user_profile.street,
+                         "phone": user_profile.phone
+                         }
 
             result = {
                 "items": items
@@ -330,7 +355,68 @@ def my_ads(request):
         else:
             errors = []
 
-            errors.append({"unable_to_load_profile": "no_user_is_logged_in"})
+            errors.append({"unable to load user profile": "login requested"})
+
+            result = {
+                "errors": errors
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 403
+
+            return response
+
+
+
+@csrf_exempt
+def my_ads(request):
+
+    if request.method == 'GET':
+        if request.user.is_authenticated:
+
+            page = (request.GET.get('page', default="1"))
+
+            page = int(page)
+
+            page_number = page
+            page = (page-1) * 10
+
+            data = Advertisments.objects.filter(owner_id=request.user.id).order_by('-created_at')[page:page + 10]
+            count = Advertisments.objects.filter(owner_id=request.user.id).count()
+
+            items = list(data.values('id', 'name', 'description', 'prize',
+                       'picture', 'city', 'street', 'zip_code', 'category__name',
+                       'district__name', 'status__name'))
+
+            for records in items:
+                records['category'] = records.pop('category__name')
+                records['district'] = records.pop('district__name')
+                records['status'] = records.pop('status__name')
+
+            count = float(count)
+
+            max_page = count / 10
+            max_page = int(math.ceil(max_page))
+            count = int(count)
+            result = {
+                "items": items,
+                "metadata": {
+                    "page": page_number,
+                    "per_page": 10,
+                    "pages": max_page,
+                    "total": count
+                }
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 200
+
+            return response
+
+        else:
+            errors = []
+
+            errors.append({"unable to load favourite ads": "no user is logged in"})
 
             result = {
                 "errors": errors
@@ -341,6 +427,52 @@ def my_ads(request):
 
             return response
 
+
+@csrf_exempt
+def ad_detail(request, id):
+
+    if request.method == 'GET':
+
+        id = str(id)
+        errors = []
+
+        count = Advertisments.objects.filter(id=id).count()
+
+        count = int(count)
+
+        if count == 0:
+            errors.append({"unable to load ad detail": "ad not found"})
+
+            result = {
+                "errors": errors
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 404
+            return response
+
+
+        data = Advertisments.objects.filter(id=id)
+
+        items = list(data.values('id', 'name', 'description', 'prize',
+                                 'picture', 'city', 'street', 'zip_code', 'category__name',
+                                 'district__name', 'status__name', 'owner__username'))
+
+        for records in items:
+            records['category'] = records.pop('category__name')
+            records['district'] = records.pop('district__name')
+            records['status'] = records.pop('status__name')
+            records['owner'] = records.pop('owner__username')
+
+
+        result = {
+            "items": items
+        }
+
+        response = JsonResponse(result)
+        response.status_code = 200
+
+        return response
 
 
 
