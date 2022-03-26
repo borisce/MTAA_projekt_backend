@@ -292,6 +292,55 @@ def my_profile(request):
 
             return response
 
+@csrf_exempt
+def my_ads(request):
+
+    if request.method == 'GET':
+        if request.user.is_authenticated:
+
+            page = (request.GET.get('page', default="1"))
+
+            if not type(page) ==int:
+                page = 1
+
+            page_number = page
+            page = (page-1) * 10
+
+            data = Advertisments.objects.filter(owner_id=request.user.id)[page:page + 10]
+            count = Advertisments.objects.filter(owner_id=request.user.id).count()
+
+            items = list(data.values('id', 'name', 'description', 'prize',
+                       'picture', 'city', 'street', 'zip_code', 'created_at', 'category__name',
+                       'district__name', 'status__name'))
+
+            count = float(count)
+
+            #max_page = count / per_page
+            #max_page = int(math.ceil(max_page))
+
+            result = {
+                "items": items
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 200
+
+            return response
+
+        else:
+            errors = []
+
+            errors.append({"unable_to_load_profile": "no_user_is_logged_in"})
+
+            result = {
+                "errors": errors
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 401
+
+            return response
+
 
 
 
@@ -302,11 +351,11 @@ def create_new_ad(request):
             try:
                 data = json.loads(request.body.decode("utf-8"))
             except BaseException:
-                response = JsonResponse({"errors": "missing_required_fields"})
+                response = JsonResponse({"errors": "unable_to_load_request_body"})
                 response.status_code = 422
                 return response
-            required_fields = ["name", "price", "description", "district", "city", "category", "status", "owner"]
-            optional_fields = ["picture", "street", "zip_code"]
+            required_fields = ["name", "price", "district", "city", "category"]
+            optional_fields = ["picture", "street", "zip_code", "description"]
             errors = []
             for req in required_fields:
                 if req not in data:
@@ -316,40 +365,51 @@ def create_new_ad(request):
                     response = JsonResponse({"errors": errors})
                     response.status_code = 422
                     return response
-            if request.user.id == int(data["owner"]):
-                try:
-                    category = Items_categories.objects.get(id=data["category"])
-                    district = Districts.objects.get(name=data["district"])
-                    status = Statuses.objects.get(name=data["status"])
-                    owner = User.objects.get(id=data["owner"])
-                except models.ObjectDoesNotExist:
-                    response = JsonResponse({"errors": {"create_failed": "value_doesnt_exist"}})
-                    response.status_code = 422
-                    return response
-                for field in optional_fields:
-                    if field not in data:
-                        data[field] = None
-                new = Advertisments(
-                    name=data["name"],
-                    description=data["description"],
-                    prize=data["price"],
-                    picture=data["picture"],
-                    city=data["city"],
-                    street=data["street"],
-                    zip_code=data["zip_code"],
-                    category=category,
-                    status=status,
-                    district=district,
-                    owner_id=owner.id
-                )
-                new.save()
-                response = HttpResponse()
-                response.status_code = 200
+
+            try:
+                category = Items_categories.objects.get(name=data["category"])
+            except models.ObjectDoesNotExist:
+                response = JsonResponse({"errors": {"create_failed": "category_value_doesnt_exist"}})
+                response.status_code = 422
                 return response
-            else:
-                response = JsonResponse({"errors": {"create_failed": "accesing_diferent_user"}})
-                response.status_code = 403
+            try:
+                district = Districts.objects.get(name=data["district"])
+            except models.ObjectDoesNotExist:
+                response = JsonResponse({"errors": {"create_failed": "district_value_doesnt_exist"}})
+                response.status_code = 422
                 return response
+
+            for field in optional_fields:
+                if field not in data:
+                    data[field] = None
+
+            status = Statuses.objects.get(id=1)
+            price = data["price"]
+
+            if not type(price) is int:
+                response = JsonResponse({"errors": {"price": "not number"}})
+                response.status_code = 422
+                return response
+
+
+            new = Advertisments(
+                name=data["name"],
+                description=data["description"],
+                prize=data["price"],
+                picture=data["picture"],
+                city=data["city"],
+                street=data["street"],
+                zip_code=data["zip_code"],
+                category=category,
+                status=status,
+                district=district,
+                owner_id=request.user.id
+            )
+            new.save()
+            response = HttpResponse()
+            response.status_code = 204
+            return response
+
         else:
             response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401

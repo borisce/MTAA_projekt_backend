@@ -13,5 +13,6 @@ urlpatterns = [
     path('update_ad/', views.update_ad),
     path('delete_ad/', views.delete_ad),
     path('delete_favorite/', views.delete_favorite),
-    path('my_profile/', views.my_profile)
+    path('my_profile/', views.my_profile),
+    path('my_ads/', views.my_ads)
 ]
