@@ -22,7 +22,7 @@ class Advertisments(models.Model):
     name = models.CharField(max_length=60)
     description = models.CharField(max_length=1000)
     prize = models.IntegerField()
-    picture = models.CharField(max_length=1000, null=True)
+    picture = models.FileField(null=True)
     city = models.CharField(max_length=60)
     street = models.CharField(max_length=60, null=True)
     zip_code = models.CharField(max_length=10, null=True)

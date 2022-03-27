@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from django.http import HttpResponse
 import psycopg2
 import math
@@ -10,6 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F
 from django.db.models import Q
 from django.contrib.auth.models import auth
+from rest_framework.response import Response
+
 from .models import User, Items_categories, Districts, Statuses, Advertisments, Favorite_advertisments
 from django.db import models
 
@@ -475,19 +477,36 @@ def ad_detail(request, id):
         return response
 
 
+@csrf_exempt
+def get_image(request, name):
+    if request.method == 'GET':
+        location = 'media/'+name
+        try:
+            img = open(location, 'rb')
+
+            response = FileResponse(img)
+            response.status_code = 200
+            return response
+        except IOError:
+            response = HttpResponse()
+            response.status_code = 404
+            return response
+
+
+
 
 @csrf_exempt
 def create_new_ad(request):
     if request.method == 'POST':
         if request.user.is_authenticated:
             try:
-                data = json.loads(request.body.decode("utf-8"))
+                data = json.loads(request.POST["json"])
             except BaseException:
                 response = JsonResponse({"errors": "unable_to_load_request_body"})
                 response.status_code = 422
                 return response
             required_fields = ["name", "price", "district", "city", "category"]
-            optional_fields = ["picture", "street", "zip_code", "description"]
+            optional_fields = ["street", "zip_code", "description"]
             errors = []
             for req in required_fields:
                 if req not in data:
@@ -515,6 +534,10 @@ def create_new_ad(request):
                 if field not in data:
                     data[field] = None
 
+            if "file" in request.FILES:
+                file = request.FILES["file"]
+            else:
+                file = None
             status = Statuses.objects.get(id=1)
             price = data["price"]
 
@@ -528,7 +551,7 @@ def create_new_ad(request):
                 name=data["name"],
                 description=data["description"],
                 prize=data["price"],
-                picture=data["picture"],
+                picture=file,
                 city=data["city"],
                 street=data["street"],
                 zip_code=data["zip_code"],
@@ -539,14 +562,13 @@ def create_new_ad(request):
             )
             new.save()
             response = HttpResponse()
-            response.status_code = 204
+            response.status_code = 200
             return response
 
         else:
             response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
             return response
-
 
 @csrf_exempt
 def add_favourite_ads(request):
@@ -669,16 +691,16 @@ def update_profile(request):
 
 @csrf_exempt
 def update_ad(request):
-    if request.method == 'PUT':
+    if request.method == 'POST': #TODO musi byt POST, inac nejde request
         if request.user.is_authenticated:
             try:
-                data = json.loads(request.body.decode("utf-8"))
+                data = json.loads(request.POST["json"])
             except BaseException:
                 response = JsonResponse({"errors": "unable_to_load_request_body"})
                 response.status_code = 422
                 return response
             required_fields = ["ad_id", "name", "description", "price", "city", "category", "status", "district"]
-            optional_fields = ["picture", "street", "zip_code"]
+            optional_fields = ["street", "zip_code"]
             errors = []
             for req in required_fields:
                 if req not in data:
@@ -698,8 +720,10 @@ def update_ad(request):
                     response = JsonResponse({"errors": {"update_failed": "value_doesnt_exist"}})
                     response.status_code = 422
                     return response
-                if "picture" not in data:
-                    data["picture"] = ad.picture
+                if "file" in request.FILES:
+                    file = request.FILES["file"]
+                else:
+                    file = None #TODO treba spravit delete, ak sa vymaze obrazok
                 if "street" not in data:
                     data["street"] = ad.street
                 if "zip_code" not in data:
@@ -709,7 +733,7 @@ def update_ad(request):
                         name=data["name"],
                         description=data["description"],
                         prize=data["price"],
-                        picture=data["picture"],
+                        picture=file,
                         city=data["city"],
                         street=data["street"],
                         zip_code=data["zip_code"],
