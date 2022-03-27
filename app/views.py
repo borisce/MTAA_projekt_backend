@@ -79,6 +79,7 @@ def register(request):
             street = None
             zip_code = None
             phone = None
+            district_id = None
 
             for i in range(5):
                 # ziskanie hodnot textovych parametrov
@@ -295,6 +296,7 @@ def my_profile(request):
             return response
 
 
+
 @csrf_exempt
 def user_profile(request, id):
 
@@ -369,6 +371,130 @@ def user_profile(request, id):
             return response
 
 
+@csrf_exempt
+def ads(request):
+    if request.method == 'GET':
+        page = (request.GET.get('page', default=1))
+        name = (request.GET.get('name', default=""))
+        category = (request.GET.get('category', default=""))
+        district = (request.GET.get('district', default=""))
+        min_prize = (request.GET.get('min_prize', default=-1))
+        max_prize = (request.GET.get('max_prize', default=-1))
+
+        error = 0
+        errors = []
+
+        try:
+            page = int(page)
+        except:
+            error = error + 1
+            errors.append({"page": "not number"})
+
+        try:
+            min_prize = int(min_prize)
+        except:
+            error = error + 1
+            errors.append({"min_prize": "not number"})
+
+        try:
+            max_prize = int(max_prize)
+        except:
+            error = error + 1
+            errors.append({"max_prize": "not number"})
+
+        category = str(category)
+
+        page_number = page
+        page = (page - 1) * 10
+
+        query = Q()
+
+        if name != "":
+            query = Q(name__icontains=name)
+
+        if category != "":
+
+            valid = 1
+            category_name = ""
+
+            try:
+                category_name = Items_categories.objects.get(name=category)
+            except:
+                error = error + 1
+                errors.append({"category": "invalid value"})
+                valid = 0
+
+            if valid == 1:
+                query &= Q(category_id=category_name.id)
+
+
+
+        if district != "":
+
+            valid = 1
+            district_name = ""
+
+            try:
+                district_name = Districts.objects.get(name=district)
+            except:
+                error = error + 1
+                errors.append({"district": "invalid value"})
+                valid = 0
+
+            if valid == 1:
+                query &= Q(district_id=district_name.id)
+
+        if min_prize != -1:
+            query &= Q(prize__gte=min_prize)
+
+        if max_prize != -1:
+            query &= Q(prize__lte=max_prize)
+
+
+        if error != 0:
+            result = {
+                "errors": errors
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 422
+
+            return response
+
+
+
+        result = Advertisments.objects.filter(query).order_by('-created_at')[page:page + 10]
+        count = Advertisments.objects.filter(query).count()
+
+        items = list(result.values('id', 'name', 'description', 'prize',
+                                 'picture', 'city', 'street', 'zip_code', 'category__name',
+                                 'district__name', 'status__name'))
+
+        for records in items:
+            records['category'] = records.pop('category__name')
+            records['district'] = records.pop('district__name')
+            records['status'] = records.pop('status__name')
+
+        count = float(count)
+
+        max_page = count / 10
+        max_page = int(math.ceil(max_page))
+        count = int(count)
+        result = {
+            "items": items,
+            "metadata": {
+                "page": page_number,
+                "per_page": 10,
+                "pages": max_page,
+                "total": count
+            }
+        }
+
+        response = JsonResponse(result)
+        response.status_code = 200
+
+        return response
+
 
 @csrf_exempt
 def my_ads(request):
@@ -376,9 +502,22 @@ def my_ads(request):
     if request.method == 'GET':
         if request.user.is_authenticated:
 
-            page = (request.GET.get('page', default="1"))
+            page = (request.GET.get('page', default=1))
 
-            page = int(page)
+            try:
+                page = int(page)
+            except:
+
+                errors.append({"page": "not number"})
+
+                result = {
+                    "errors": errors
+                }
+
+                response = JsonResponse(result)
+                response.status_code = 422
+
+                return response
 
             page_number = page
             page = (page-1) * 10

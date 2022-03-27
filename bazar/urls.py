@@ -19,5 +19,10 @@ urlpatterns = [
     path('user_profile/<int:id>', views.user_profile),
     path('my_ads/', views.my_ads),
     path('ad_detail/<int:id>', views.ad_detail),
+<<<<<<< Updated upstream
     path('get_image/<name>', views.get_image),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+=======
+    path('ads/', views.ads),
+]
+>>>>>>> Stashed changes
