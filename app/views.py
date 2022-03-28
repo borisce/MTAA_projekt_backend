@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.contrib.auth.models import auth
 from rest_framework.response import Response
 
-from .models import User, Items_categories, Districts, Statuses, Advertisments, Favorite_advertisments
+from .models import User, Items_categories, Districts, Statuses, Advertisments
 from django.db import models
 
 
@@ -468,12 +468,13 @@ def ads(request):
 
         items = list(result.values('id', 'name', 'description', 'prize',
                                  'picture', 'city', 'street', 'zip_code', 'category__name',
-                                 'district__name', 'status__name'))
+                                 'district__name', 'status__name' 'owner__name'))
 
         for records in items:
             records['category'] = records.pop('category__name')
             records['district'] = records.pop('district__name')
             records['status'] = records.pop('status__name')
+            records['owner'] = records.pop('owner__name')
 
         count = float(count)
 
@@ -485,8 +486,8 @@ def ads(request):
             "metadata": {
                 "page": page_number,
                 "per_page": 10,
-                "pages": max_page,
-                "total": count
+                "pages_total": max_page,
+                "records_total": count
             }
         }
 
@@ -494,6 +495,157 @@ def ads(request):
         response.status_code = 200
 
         return response
+
+
+@csrf_exempt
+def favourite_ads(request):
+    if request.method == 'GET':
+
+        if request.user.is_authenticated:
+            page = (request.GET.get('page', default=1))
+            name = (request.GET.get('name', default=""))
+            category = (request.GET.get('category', default=""))
+            district = (request.GET.get('district', default=""))
+            min_prize = (request.GET.get('min_prize', default=-1))
+            max_prize = (request.GET.get('max_prize', default=-1))
+
+            error = 0
+            errors = []
+
+            try:
+                page = int(page)
+            except:
+                error = error + 1
+                errors.append({"page": "not number"})
+
+            try:
+                min_prize = int(min_prize)
+            except:
+                error = error + 1
+                errors.append({"min_prize": "not number"})
+
+            try:
+                max_prize = int(max_prize)
+            except:
+                error = error + 1
+                errors.append({"max_prize": "not number"})
+
+            category = str(category)
+
+            page_number = page
+            page = (page - 1) * 10
+
+            query = Q()
+
+            if name != "":
+                query = Q(name__icontains=name)
+
+            if category != "":
+
+                valid = 1
+                category_name = ""
+
+                try:
+                    category_name = Items_categories.objects.get(name=category)
+                except:
+                    error = error + 1
+                    errors.append({"category": "invalid value"})
+                    valid = 0
+
+                if valid == 1:
+                    query &= Q(category_id=category_name.id)
+
+            if district != "":
+
+                valid = 1
+                district_name = ""
+
+                try:
+                    district_name = Districts.objects.get(name=district)
+                except:
+                    error = error + 1
+                    errors.append({"district": "invalid value"})
+                    valid = 0
+
+                if valid == 1:
+                    query &= Q(district_id=district_name.id)
+
+            if min_prize != -1:
+                query &= Q(prize__gte=min_prize)
+
+            if max_prize != -1:
+                query &= Q(prize__lte=max_prize)
+
+            if error != 0:
+                result = {
+                    "errors": errors
+                }
+
+                response = JsonResponse(result)
+                response.status_code = 422
+
+                return response
+
+            logged_user = User.objects.get(id = request.user.id)
+
+
+
+            favourite = logged_user.favourite_ads.filter(query)[page:page + 10]
+            count = logged_user.favourite_ads.filter(query).count()
+
+
+            items = list(favourite.values('id', 'name', 'description', 'prize',
+                                          'picture', 'city', 'street', 'zip_code', 'category__name',
+                                 'district__name', 'status__name', 'owner__username'
+                                 ))
+            print(type(items))
+
+
+
+            
+            #items = list(result.values('favourite_ads__id'))
+
+            """
+            for records in items:
+                records['category'] = records.pop('category__name')
+                records['district'] = records.pop('district__name')
+                records['status'] = records.pop('status__name')
+                records['owner'] = records.pop('owner__name')  
+            """
+            count = float(count)
+
+            max_page = count / 10
+            max_page = int(math.ceil(max_page))
+            count = int(count)
+            result = {
+                "items": items,
+                "metadata": {
+                    "page": page_number,
+                    "per_page": 10,
+                    "pages_total": max_page,
+                    "records_total": count
+                }
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 200
+
+            return response
+
+        else:
+            errors = []
+
+            errors.append({"unable to load favourite ads": "no user is logged in"})
+
+            result = {
+                "errors": errors
+            }
+
+            response = JsonResponse(result)
+            response.status_code = 401
+
+            return response
+
 
 
 @csrf_exempt
@@ -557,7 +709,7 @@ def my_ads(request):
         else:
             errors = []
 
-            errors.append({"unable to load favourite ads": "no user is logged in"})
+            errors.append({"unable to load users ads": "no user is logged in"})
 
             result = {
                 "errors": errors
@@ -641,7 +793,7 @@ def create_new_ad(request):
             try:
                 data = json.loads(request.POST["json"])
             except BaseException:
-                response = JsonResponse({"errors": "unable_to_load_request_body"})
+                response = JsonResponse({"errors": "errors_in_request_body"})
                 response.status_code = 422
                 return response
             required_fields = ["name", "price", "district", "city", "category"]
@@ -716,43 +868,41 @@ def add_favourite_ads(request):
             try:
                 data = json.loads(request.body.decode("utf-8"))
             except BaseException:
-                response = JsonResponse({"errors": "missing_required_fields"})
+                response = JsonResponse({"errors": "errors_in_request_body"})
                 response.status_code = 422
                 return response
+
             required_fields = ["ad_id"]
             errors = []
+
             for req in required_fields:
                 if req not in data:
                     errors.append({req: "required"})
-            else:
-                if len(errors) != 0:
-                    response = JsonResponse({"errors": errors})
-                    response.status_code = 422
-                    return response
+
+            if len(errors) != 0:
+                response = JsonResponse({"errors": errors})
+                response.status_code = 422
+                return response
             try:
                 ad = Advertisments.objects.get(id=data["ad_id"])
                 if ad.owner.id == request.user.id:
                     response = JsonResponse({"errors": {"add_failed": "unable_to_add_own_ad"}})
                     response.status_code = 403
                     return response
+
             except models.ObjectDoesNotExist:
                 response = JsonResponse({"errors": {"add_failed": "ad_doesnt_exist"}})
-                response.status_code = 422
+                response.status_code = 404
                 return response
-            ad_unique = Favorite_advertisments.objects.all().filter(
-                Q(ad_id=data["ad_id"], user_id=request.user.id)).count()
-            if ad_unique != 0:
-                response = JsonResponse({"errors": {"add_failed": "already_in_favorites"}})
-                response.status_code = 403
-                return response
-            new = Favorite_advertisments(
-                ad_id=ad.id,
-                user_id=request.user.id
-            )
-            new.save()
+
+            user_profile = User.objects.get(id=request.user.id)
+
+            user_profile.favourite_ads.add(ad)
+
             response = HttpResponse()
             response.status_code = 200
             return response
+
         else:
             response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
@@ -934,7 +1084,7 @@ def delete_ad(request):
 
 
 @csrf_exempt
-def delete_favorite(request):
+def delete_favourite(request):
     if request.method == 'DELETE':
         if request.user.is_authenticated:
             try:
@@ -953,21 +1103,24 @@ def delete_favorite(request):
                     response = JsonResponse({"errors": errors})
                     response.status_code = 422
                     return response
-            try:
-                ad = Favorite_advertisments.objects.get(ad_id=data["ad_id"], user_id=request.user.id)
-                if ad.user_id == request.user.id:
-                    Favorite_advertisments.objects.filter(ad_id=data["ad_id"], user_id=request.user.id).delete()
-                    response = HttpResponse()
-                    response.status_code = 200
-                    return response
-                else:
-                    response = JsonResponse({"errors": "ad_belongs_to_different_user"})
-                    response.status_code = 403
-                    return response
-            except models.ObjectDoesNotExist:
-                response = JsonResponse({"errors": {"delete_failed": "ad_is_not_favorite"}})
-                response.status_code = 422
+
+            user = User.objects.get(id=request.user.id)
+
+            ad_to_remove = user.favourite_ads.filter(id = data["ad_id"])
+
+            id_to_remove = list(ad_to_remove.values('id'))
+
+            if not id_to_remove:
+                response = JsonResponse({"errors": {"delete_failed": "ad_is_not_in_favourites"}})
+                response.status_code = 404
                 return response
+
+            user.favourite_ads.remove(id_to_remove[0]['id'])
+
+            response = HttpResponse()
+            response.status_code = 200
+            return response
+
 
         else:
             response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})

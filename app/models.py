@@ -17,6 +17,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, null=True)
     deleted_at = models.DateTimeField(auto_now_add=False, null=True)
     district = models.ForeignKey(Districts, on_delete=models.CASCADE, null=True)
+    favourite_ads = models.ManyToManyField('Advertisments')
 
 class Advertisments(models.Model):
     name = models.CharField(max_length=60)
@@ -33,6 +34,3 @@ class Advertisments(models.Model):
     district = models.ForeignKey(Districts, on_delete=models.CASCADE)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
 
-class Favorite_advertisments(models.Model):
-    ad = models.ForeignKey(Advertisments, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
