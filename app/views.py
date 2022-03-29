@@ -1008,6 +1008,10 @@ def update_ad(request):
                     response = JsonResponse({"errors": {"update_failed": "value_doesnt_exist"}})
                     response.status_code = 422
                     return response
+                if request.user.id != ad.owner_id:
+                    response = JsonResponse({"errors": {"update_failed": "ad_belongs_to_different_user"}})
+                    response.status_code = 403
+                    return response
                 if "file" in request.FILES:
                     file = request.FILES["file"]
                 else:
