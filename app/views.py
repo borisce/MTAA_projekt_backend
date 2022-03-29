@@ -10,7 +10,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F
 from django.db.models import Q
 from django.contrib.auth.models import auth
-from rest_framework.response import Response
 
 from .models import User, Items_categories, Districts, Statuses, Advertisments
 from django.db import models
