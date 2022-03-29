@@ -467,13 +467,13 @@ def ads(request):
 
         items = list(result.values('id', 'name', 'description', 'prize',
                                  'picture', 'city', 'street', 'zip_code', 'category__name',
-                                 'district__name', 'status__name' 'owner__name'))
+                                 'district__name', 'status__name','owner__username'))
 
         for records in items:
             records['category'] = records.pop('category__name')
             records['district'] = records.pop('district__name')
             records['status'] = records.pop('status__name')
-            records['owner'] = records.pop('owner__name')
+            records['owner'] = records.pop('owner__username')
 
         count = float(count)
 
@@ -795,8 +795,8 @@ def create_new_ad(request):
                 response = JsonResponse({"errors": "errors_in_request_body"})
                 response.status_code = 422
                 return response
-            required_fields = ["name", "price", "district", "city", "category"]
-            optional_fields = ["street", "zip_code", "description"]
+            required_fields = ["name", "price", "district", "city", "category","description"]
+            optional_fields = ["street", "zip_code"]
             errors = []
             for req in required_fields:
                 if req not in data:
@@ -852,7 +852,7 @@ def create_new_ad(request):
             )
             new.save()
             response = HttpResponse()
-            response.status_code = 200
+            response.status_code = 204
             return response
 
         else:
@@ -967,9 +967,9 @@ def update_profile(request):
                 except IntegrityError:
                     response = JsonResponse({"errors": {"update_failed": "invalid_value"}})
                     response.status_code = 422
-                return response
+                    return response
             response = HttpResponse()
-            response.status_code = 200
+            response.status_code = 204
             return response
         else:
             response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
@@ -1042,7 +1042,7 @@ def update_ad(request):
                     response.status_code = 422
                     return response
                 response = HttpResponse()
-                response.status_code = 200
+                response.status_code = 204
                 return response
         else:
             response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
