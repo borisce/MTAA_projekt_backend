@@ -1011,12 +1011,16 @@ def update_ad(request):
                 if "file" in request.FILES:
                     file = request.FILES["file"]
                 else:
-                    file = None #TODO treba spravit delete, ak sa vymaze obrazok
+                    file = None
                 if "street" not in data:
                     data["street"] = ad.street
                 if "zip_code" not in data:
                     data["zip_code"] = ad.zip_code
                 try:
+                    if not type(data["price"]) is int:
+                        response = JsonResponse({"errors": {"price": "not number"}})
+                        response.status_code = 422
+                        return response
                     Advertisments.objects.filter(id=data['ad_id'], owner_id=request.user.id).update(
                         name=data["name"],
                         description=data["description"],
