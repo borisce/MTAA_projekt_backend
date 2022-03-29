@@ -969,7 +969,7 @@ def update_profile(request):
                     response.status_code = 422
                     return response
             response = HttpResponse()
-            response.status_code = 204
+            response.status_code = 201
             return response
         else:
             response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
@@ -1073,12 +1073,12 @@ def delete_ad(request):
                 ad = Advertisments.objects.get(id=data["ad_id"])
             except models.ObjectDoesNotExist:
                 response = JsonResponse({"errors": {"delete_failed": "ad_doesnt_exist"}})
-                response.status_code = 422
+                response.status_code = 404
                 return response
             if ad.owner.id == request.user.id:
                 Advertisments.objects.filter(id=data["ad_id"]).delete()
                 response = HttpResponse()
-                response.status_code = 200
+                response.status_code = 204
                 return response
             else:
                 response = JsonResponse({"errors": "ad_belongs_to_different_user"})
@@ -1125,7 +1125,7 @@ def delete_favourite(request):
             user.favourite_ads.remove(id_to_remove[0]['id'])
 
             response = HttpResponse()
-            response.status_code = 200
+            response.status_code = 204
             return response
 
 
