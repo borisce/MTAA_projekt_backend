@@ -148,7 +148,7 @@ def register(request):
 
             response = HttpResponse()
 
-            response.status_code = 201
+            response.status_code = 204
 
         return response
 
@@ -467,7 +467,11 @@ def ads(request):
 
         items = list(result.values('id', 'name', 'description', 'prize',
                                  'picture', 'city', 'street', 'zip_code', 'category__name',
+<<<<<<< Updated upstream
                                  'district__name', 'status__name','owner__username'))
+=======
+                                 'district__name', 'status__name', 'owner__username'))
+>>>>>>> Stashed changes
 
         for records in items:
             records['category'] = records.pop('category__name')
@@ -604,13 +608,13 @@ def favourite_ads(request):
             
             #items = list(result.values('favourite_ads__id'))
 
-            """
+
             for records in items:
                 records['category'] = records.pop('category__name')
                 records['district'] = records.pop('district__name')
                 records['status'] = records.pop('status__name')
-                records['owner'] = records.pop('owner__name')  
-            """
+                records['owner'] = records.pop('owner__username')
+
             count = float(count)
 
             max_page = count / 10
@@ -1125,7 +1129,7 @@ def delete_favourite(request):
             user.favourite_ads.remove(id_to_remove[0]['id'])
 
             response = HttpResponse()
-            response.status_code = 200
+            response.status_code = 204
             return response
 
 
