@@ -467,11 +467,9 @@ def ads(request):
 
         items = list(result.values('id', 'name', 'description', 'prize',
                                  'picture', 'city', 'street', 'zip_code', 'category__name',
-<<<<<<< Updated upstream
                                  'district__name', 'status__name','owner__username'))
-=======
-                                 'district__name', 'status__name', 'owner__username'))
->>>>>>> Stashed changes
+
+
 
         for records in items:
             records['category'] = records.pop('category__name')
@@ -498,6 +496,39 @@ def ads(request):
         response.status_code = 200
 
         return response
+
+
+
+@csrf_exempt
+def latest_ads(request):
+    if request.method == 'GET':
+
+        result = Advertisments.objects.filter().order_by('-created_at')[0:10]
+
+        items = list(result.values('id', 'name', 'description', 'prize',
+                                 'picture', 'city', 'street', 'zip_code', 'category__name',
+                                 'district__name', 'status__name','owner__username'))
+
+
+
+        for records in items:
+            records['category'] = records.pop('category__name')
+            records['district'] = records.pop('district__name')
+            records['status'] = records.pop('status__name')
+            records['owner'] = records.pop('owner__username')
+
+
+
+        result = {
+            "items": items
+
+        }
+
+        response = JsonResponse(result)
+        response.status_code = 200
+
+        return response
+
 
 
 @csrf_exempt
