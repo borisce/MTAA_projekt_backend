@@ -102,33 +102,31 @@ def register(request):
                         zip_code = data[optional_parameters[i]]
                     if i == 3:
                         phone_data = data[optional_parameters[i]]
-                        if data[optional_parameters[i]] != None:
-                            j = len(phone_data)
-                            if phone_data[0] != '+':
-                                if phone_data[0] < '0' or phone_data[0] > '9':
-                                    error += 1
-                                    errors.append(
-                                        {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
-                            for k in range(1, j):
-                                if phone_data[k] < '0' or phone_data[k] > '9':
-                                    error += 1
-                                    errors.append(
-                                        {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
-                            phone = data[optional_parameters[i]]
+                        j = len(phone_data)
+                        if phone_data[0] != '+':
+                            if phone_data[0] < '0' or phone_data[0] > '9':
+                                error += 1
+                                errors.append(
+                                    {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
+                        for k in range(1, j):
+                            if phone_data[k] < '0' or phone_data[k] > '9':
+                                error += 1
+                                errors.append(
+                                    {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
+                        phone = data[optional_parameters[i]]
                     if i == 4:
                         district_id = None
                         district_name = data[optional_parameters[i]]
-                        if data["district"] != None:
-                            district_exists = Districts.objects.all().filter(Q(name=district_name)).count()
+                        district_exists = Districts.objects.all().filter(Q(name=district_name)).count()
 
-                            if district_exists == 0:
-                                error += 1
-                                errors.append({"field": "district", "reasons": [
-                                              "district doesnt exists"]})
-                            else:
+                        if district_exists == 0:
+                            error += 1
+                            errors.append({"field": "district", "reasons": [
+                                          "district doesnt exists"]})
+                        else:
 
-                                district_id = Districts.objects.values_list(
-                                    'id').filter(Q(name=district_name))
+                            district_id = Districts.objects.values_list(
+                                'id').filter(Q(name=district_name))
 
         email_unique = User.objects.all().filter(Q(email=mail)).count()
 
