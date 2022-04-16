@@ -79,8 +79,10 @@ def register(request):
         len_list = len(data)
 
         # nazvy parametrov ktore musia byt v body
-        required_parameters = ["user_name", "first_name", "last_name", "email", "password"]
-        optional_parameters = ["city", "street", "zipcode", "phone", "district"]
+        required_parameters = ["user_name",
+                               "first_name", "last_name", "email", "password"]
+        optional_parameters = ["city", "street",
+                               "zipcode", "phone", "district"]
 
         # pole v ktorom budu ulozene hodnoty parametrov
         parameters_values = []
@@ -94,7 +96,8 @@ def register(request):
             if required_parameters[i] in data:
                 if data[required_parameters[i]] == None:
                     error += 1
-                    errors.append({"field": required_parameters[i], "reasons": ["requred"]})
+                    errors.append(
+                        {"field": required_parameters[i], "reasons": ["requred"]})
 
                 if i == 3:
                     mail = data[required_parameters[i]]
@@ -115,21 +118,25 @@ def register(request):
                         if mail[k] == '@' and at != 0:
                             print("1")
                             error += 1
-                            errors.append({"field": required_parameters[i], "reasons": ["invalid mail"]})
+                            errors.append(
+                                {"field": required_parameters[i], "reasons": ["invalid mail"]})
                         if mail[k] == '.' and dot != 0:
                             print("2")
                             error += 1
-                            errors.append({"field": required_parameters[i], "reasons": ["invalid mail"]})
+                            errors.append(
+                                {"field": required_parameters[i], "reasons": ["invalid mail"]})
                     if at_position > dot_position:
                         print("3")
                         error += 1
-                        errors.append({"field": required_parameters[i], "reasons": ["invalid mail"]})
+                        errors.append(
+                            {"field": required_parameters[i], "reasons": ["invalid mail"]})
 
                 parameters_values.append(data[required_parameters[i]])
 
             else:
                 error += 1
-                errors.append({"field": required_parameters[i], "reasons": ["required"]})
+                errors.append(
+                    {"field": required_parameters[i], "reasons": ["required"]})
 
             city = None
             street = None
@@ -148,31 +155,31 @@ def register(request):
                         zip_code = data[optional_parameters[i]]
                     if i == 3:
                         phone_data = data[optional_parameters[i]]
-                        if data[optional_parameters[i]] != None:
-                            j = len(phone_data)
-                            if phone_data[0] != '+':
-                                if phone_data[0] < '0' or phone_data[0] > '9':
-                                    error += 1
-                                    errors.append({"field": optional_parameters[i], "reasons": ["invalid phone number"]})
-                            for k in range(1, j):
-                                if phone_data[k] < '0' or phone_data[k] > '9':
-                                    error += 1
-                                    errors.append({"field": optional_parameters[i], "reasons": ["invalid phone number"]})
-                            phone = data[optional_parameters[i]]
+                        j = len(phone_data)
+                        if phone_data[0] != '+':
+                            if phone_data[0] < '0' or phone_data[0] > '9':
+                                error += 1
+                                errors.append(
+                                    {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
+                        for k in range(1, j):
+                            if phone_data[k] < '0' or phone_data[k] > '9':
+                                error += 1
+                                errors.append(
+                                    {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
+                        phone = data[optional_parameters[i]]
                     if i == 4:
                         district_id = None
                         district_name = data[optional_parameters[i]]
-                        if data["district"] != None:
-                            district_exists = Districts.objects.all().filter(Q(name=district_name)).count()
+                        district_exists = Districts.objects.all().filter(Q(name=district_name)).count()
 
-                            if district_exists == 0:
-                                error += 1
-                                errors.append({"field": "district", "reasons": ["district doesnt exists"]})
-                            else:
+                        if district_exists == 0:
+                            error += 1
+                            errors.append({"field": "district", "reasons": [
+                                          "district doesnt exists"]})
+                        else:
 
-                                district_id = Districts.objects.values_list('id').filter(Q(name=district_name))
-
-
+                            district_id = Districts.objects.values_list(
+                                'id').filter(Q(name=district_name))
 
         email_unique = User.objects.all().filter(Q(email=mail)).count()
 
@@ -180,7 +187,8 @@ def register(request):
             error += 1
             errors.append({"field": "email", "reasons": ["not_unique"]})
 
-        user_name_unique = User.objects.all().filter(Q(username=data["user_name"])).count()
+        user_name_unique = User.objects.all().filter(
+            Q(username=data["user_name"])).count()
 
         if user_name_unique != 0:
             error += 1
@@ -313,24 +321,41 @@ def logout(request):
 
             return response
 
+
+@csrf_exempt
+def get_districts(request):
+
+    if request.method == 'GET':
+
+        districts = Districts.objects.all().values("id", "name")
+
+        response = HttpResponse(json.dumps(
+            list(districts)), content_type="application/json")
+
+        response.status_code = 200
+
+        return response
+
+
 @csrf_exempt
 def my_profile(request):
 
     if request.method == 'GET':
         if request.user.is_authenticated:
 
-            user_profile = User.objects.select_related('district').get(id=request.user.id)
+            user_profile = User.objects.select_related(
+                'district').get(id=request.user.id)
 
             items = {"user_name": user_profile.username,
-                    "first_name": user_profile.first_name,
-                    "last_name": user_profile.last_name,
-                    "email": user_profile.email,
-                    "district": user_profile.district.name,
-                    "city": user_profile.city,
-                    "zip_code": user_profile.zip_code,
-                    "street": user_profile.street,
-                    "phone": user_profile.phone
-                    }
+                     "first_name": user_profile.first_name,
+                     "last_name": user_profile.last_name,
+                     "email": user_profile.email,
+                     "district": user_profile.district.name,
+                     "city": user_profile.city,
+                     "zip_code": user_profile.zip_code,
+                     "street": user_profile.street,
+                     "phone": user_profile.phone
+                     }
 
             result = {
                 "items": items
@@ -356,7 +381,6 @@ def my_profile(request):
             return response
 
 
-
 @csrf_exempt
 def user_profile(request, id):
 
@@ -369,7 +393,8 @@ def user_profile(request, id):
             count = int(count)
 
             if count == 0:
-                errors.append({"unable to load user profile": "user not found"})
+                errors.append(
+                    {"unable to load user profile": "user not found"})
 
                 result = {
                     "errors": errors
@@ -380,7 +405,6 @@ def user_profile(request, id):
                 return response
 
             user_profile = User.objects.select_related('district').get(id=id)
-
 
             if user_profile.district == None:
 
@@ -487,8 +511,6 @@ def ads(request):
             if valid == 1:
                 query &= Q(category_id=category_name.id)
 
-
-
         if district != "":
 
             valid = 1
@@ -510,7 +532,6 @@ def ads(request):
         if max_prize != -1:
             query &= Q(prize__lte=max_prize)
 
-
         if error != 0:
             result = {
                 "errors": errors
@@ -521,16 +542,13 @@ def ads(request):
 
             return response
 
-
-
-        result = Advertisments.objects.filter(query).order_by('-created_at')[page:page + 10]
+        result = Advertisments.objects.filter(
+            query).order_by('-created_at')[page:page + 10]
         count = Advertisments.objects.filter(query).count()
 
         items = list(result.values('id', 'name', 'description', 'prize',
-                                 'picture', 'city', 'street', 'zip_code', 'category__name',
-                                 'district__name', 'status__name','owner__username'))
-
-
+                                   'picture', 'city', 'street', 'zip_code', 'category__name',
+                                   'district__name', 'status__name', 'owner__username'))
 
         for records in items:
             records['category'] = records.pop('category__name')
@@ -559,7 +577,6 @@ def ads(request):
         return response
 
 
-
 @csrf_exempt
 def latest_ads(request):
     if request.method == 'GET':
@@ -567,18 +584,14 @@ def latest_ads(request):
         result = Advertisments.objects.filter().order_by('-created_at')[0:10]
 
         items = list(result.values('id', 'name', 'description', 'prize',
-                                 'picture', 'city', 'street', 'zip_code', 'category__name',
-                                 'district__name', 'status__name','owner__username'))
-
-
+                                   'picture', 'city', 'street', 'zip_code', 'category__name',
+                                   'district__name', 'status__name', 'owner__username'))
 
         for records in items:
             records['category'] = records.pop('category__name')
             records['district'] = records.pop('district__name')
             records['status'] = records.pop('status__name')
             records['owner'] = records.pop('owner__username')
-
-
 
         result = {
             "items": items
@@ -589,7 +602,6 @@ def latest_ads(request):
         response.status_code = 200
 
         return response
-
 
 
 @csrf_exempt
@@ -681,25 +693,18 @@ def favourite_ads(request):
 
                 return response
 
-            logged_user = User.objects.get(id = request.user.id)
-
-
+            logged_user = User.objects.get(id=request.user.id)
 
             favourite = logged_user.favourite_ads.filter(query)[page:page + 10]
             count = logged_user.favourite_ads.filter(query).count()
 
-
             items = list(favourite.values('id', 'name', 'description', 'prize',
                                           'picture', 'city', 'street', 'zip_code', 'category__name',
-                                 'district__name', 'status__name', 'owner__username'
-                                 ))
+                                          'district__name', 'status__name', 'owner__username'
+                                          ))
             print(type(items))
 
-
-
-            
             #items = list(result.values('favourite_ads__id'))
-
 
             for records in items:
                 records['category'] = records.pop('category__name')
@@ -730,7 +735,8 @@ def favourite_ads(request):
         else:
             errors = []
 
-            errors.append({"unable to load favourite ads": "no user is logged in"})
+            errors.append(
+                {"unable to load favourite ads": "no user is logged in"})
 
             result = {
                 "errors": errors
@@ -740,7 +746,6 @@ def favourite_ads(request):
             response.status_code = 401
 
             return response
-
 
 
 @csrf_exempt
@@ -769,12 +774,14 @@ def my_ads(request):
             page_number = page
             page = (page-1) * 10
 
-            data = Advertisments.objects.filter(owner_id=request.user.id).order_by('-created_at')[page:page + 10]
-            count = Advertisments.objects.filter(owner_id=request.user.id).count()
+            data = Advertisments.objects.filter(
+                owner_id=request.user.id).order_by('-created_at')[page:page + 10]
+            count = Advertisments.objects.filter(
+                owner_id=request.user.id).count()
 
             items = list(data.values('id', 'name', 'description', 'prize',
-                       'picture', 'city', 'street', 'zip_code', 'category__name',
-                       'district__name', 'status__name'))
+                                     'picture', 'city', 'street', 'zip_code', 'category__name',
+                                     'district__name', 'status__name'))
 
             for records in items:
                 records['category'] = records.pop('category__name')
@@ -839,7 +846,6 @@ def ad_detail(request, id):
             response.status_code = 404
             return response
 
-
         data = Advertisments.objects.filter(id=id)
 
         items = list(data.values('id', 'name', 'description', 'prize',
@@ -851,7 +857,6 @@ def ad_detail(request, id):
             records['district'] = records.pop('district__name')
             records['status'] = records.pop('status__name')
             records['owner'] = records.pop('owner__username')
-
 
         result = {
             "items": items
@@ -879,8 +884,6 @@ def get_image(request, name):
             return response
 
 
-
-
 @csrf_exempt
 def create_new_ad(request):
     if request.method == 'POST':
@@ -891,7 +894,8 @@ def create_new_ad(request):
                 response = JsonResponse({"errors": "errors_in_request_body"})
                 response.status_code = 422
                 return response
-            required_fields = ["name", "price", "district", "city", "category","description"]
+            required_fields = ["name", "price", "district",
+                               "city", "category", "description"]
             optional_fields = ["street", "zip_code"]
             errors = []
             for req in required_fields:
@@ -906,13 +910,15 @@ def create_new_ad(request):
             try:
                 category = Items_categories.objects.get(name=data["category"])
             except models.ObjectDoesNotExist:
-                response = JsonResponse({"errors": {"create_failed": "category_value_doesnt_exist"}})
+                response = JsonResponse(
+                    {"errors": {"create_failed": "category_value_doesnt_exist"}})
                 response.status_code = 422
                 return response
             try:
                 district = Districts.objects.get(name=data["district"])
             except models.ObjectDoesNotExist:
-                response = JsonResponse({"errors": {"create_failed": "district_value_doesnt_exist"}})
+                response = JsonResponse(
+                    {"errors": {"create_failed": "district_value_doesnt_exist"}})
                 response.status_code = 422
                 return response
 
@@ -931,7 +937,6 @@ def create_new_ad(request):
                 response = JsonResponse({"errors": {"price": "not number"}})
                 response.status_code = 422
                 return response
-
 
             new = Advertisments(
                 name=data["name"],
@@ -952,9 +957,11 @@ def create_new_ad(request):
             return response
 
         else:
-            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response = JsonResponse(
+                {"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
             return response
+
 
 @csrf_exempt
 def add_favourite_ads(request):
@@ -981,12 +988,14 @@ def add_favourite_ads(request):
             try:
                 ad = Advertisments.objects.get(id=data["ad_id"])
                 if ad.owner.id == request.user.id:
-                    response = JsonResponse({"errors": {"add_failed": "unable_to_add_own_ad"}})
+                    response = JsonResponse(
+                        {"errors": {"add_failed": "unable_to_add_own_ad"}})
                     response.status_code = 403
                     return response
 
             except models.ObjectDoesNotExist:
-                response = JsonResponse({"errors": {"add_failed": "ad_doesnt_exist"}})
+                response = JsonResponse(
+                    {"errors": {"add_failed": "ad_doesnt_exist"}})
                 response.status_code = 404
                 return response
 
@@ -999,9 +1008,11 @@ def add_favourite_ads(request):
             return response
 
         else:
-            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response = JsonResponse(
+                {"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
             return response
+
 
 @csrf_exempt
 def update_profile(request):
@@ -1010,11 +1021,13 @@ def update_profile(request):
             try:
                 data = json.loads(request.body.decode("utf-8"))
             except BaseException:
-                response = JsonResponse({"errors": "unable_to_load_request_body"})
+                response = JsonResponse(
+                    {"errors": "unable_to_load_request_body"})
                 response.status_code = 422
                 return response
             required_fields = ["username", "first_name", "last_name"]
-            optional_fields = ["city", "street", "zip_code", "phone", "district"]
+            optional_fields = ["city", "street",
+                               "zip_code", "phone", "district"]
             errors = []
             for req in required_fields:
                 if req not in data:
@@ -1026,7 +1039,8 @@ def update_profile(request):
                     return response
             current_user = User.objects.get(id=request.user.id)
             if current_user.deleted_at != None:
-                response = JsonResponse({"errors": {"update_failed": "user_doesnt_exist"}})
+                response = JsonResponse(
+                    {"errors": {"update_failed": "user_doesnt_exist"}})
                 response.status_code = 422
                 return response
             if "city" not in data:
@@ -1043,7 +1057,8 @@ def update_profile(request):
                 try:
                     district = Districts.objects.get(name=data["district"])
                 except models.ObjectDoesNotExist:
-                    response = JsonResponse({"errors": {"update_failed": "district_value_doesnt_exist"}})
+                    response = JsonResponse(
+                        {"errors": {"update_failed": "district_value_doesnt_exist"}})
                     response.status_code = 422
                     return response
                 """
@@ -1061,29 +1076,33 @@ def update_profile(request):
                         phone=data["phone"]
                     )
                 except IntegrityError:
-                    response = JsonResponse({"errors": {"update_failed": "invalid_value"}})
+                    response = JsonResponse(
+                        {"errors": {"update_failed": "invalid_value"}})
                     response.status_code = 422
                     return response
             response = HttpResponse()
             response.status_code = 201
             return response
         else:
-            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response = JsonResponse(
+                {"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
             return response
 
 
 @csrf_exempt
 def update_ad(request):
-    if request.method == 'POST': #TODO musi byt POST, inac nejde request
+    if request.method == 'POST':  # TODO musi byt POST, inac nejde request
         if request.user.is_authenticated:
             try:
                 data = json.loads(request.POST["json"])
             except BaseException:
-                response = JsonResponse({"errors": "unable_to_load_request_body"})
+                response = JsonResponse(
+                    {"errors": "unable_to_load_request_body"})
                 response.status_code = 422
                 return response
-            required_fields = ["ad_id", "name", "description", "price", "city", "category", "status", "district"]
+            required_fields = ["ad_id", "name", "description",
+                               "price", "city", "category", "status", "district"]
             optional_fields = ["street", "zip_code"]
             errors = []
             for req in required_fields:
@@ -1101,11 +1120,13 @@ def update_ad(request):
                     if ad.deleted_at != None:
                         raise models.ObjectDoesNotExist
                 except models.ObjectDoesNotExist:
-                    response = JsonResponse({"errors": {"update_failed": "value_doesnt_exist"}})
+                    response = JsonResponse(
+                        {"errors": {"update_failed": "value_doesnt_exist"}})
                     response.status_code = 422
                     return response
                 if request.user.id != ad.owner_id:
-                    response = JsonResponse({"errors": {"update_failed": "ad_belongs_to_different_user"}})
+                    response = JsonResponse(
+                        {"errors": {"update_failed": "ad_belongs_to_different_user"}})
                     response.status_code = 403
                     return response
                 if "file" in request.FILES:
@@ -1118,7 +1139,8 @@ def update_ad(request):
                     data["zip_code"] = ad.zip_code
                 try:
                     if not type(data["price"]) is int:
-                        response = JsonResponse({"errors": {"price": "not number"}})
+                        response = JsonResponse(
+                            {"errors": {"price": "not number"}})
                         response.status_code = 422
                         return response
                     Advertisments.objects.filter(id=data['ad_id'], owner_id=request.user.id).update(
@@ -1134,16 +1156,19 @@ def update_ad(request):
                         district=district
                     )
                 except IntegrityError:
-                    response = JsonResponse({"errors": {"update_failed": "invalid_value"}})
+                    response = JsonResponse(
+                        {"errors": {"update_failed": "invalid_value"}})
                     response.status_code = 422
                     return response
                 response = HttpResponse()
                 response.status_code = 204
                 return response
         else:
-            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response = JsonResponse(
+                {"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
             return response
+
 
 @csrf_exempt
 def delete_ad(request):
@@ -1152,7 +1177,8 @@ def delete_ad(request):
             try:
                 data = json.loads(request.body.decode("utf-8"))
             except BaseException:
-                response = JsonResponse({"errors": "unable_to_load_request_body"})
+                response = JsonResponse(
+                    {"errors": "unable_to_load_request_body"})
                 response.status_code = 422
                 return response
             required_fields = ["ad_id"]
@@ -1168,7 +1194,8 @@ def delete_ad(request):
             try:
                 ad = Advertisments.objects.get(id=data["ad_id"])
             except models.ObjectDoesNotExist:
-                response = JsonResponse({"errors": {"delete_failed": "ad_doesnt_exist"}})
+                response = JsonResponse(
+                    {"errors": {"delete_failed": "ad_doesnt_exist"}})
                 response.status_code = 404
                 return response
             if ad.owner.id == request.user.id:
@@ -1177,11 +1204,13 @@ def delete_ad(request):
                 response.status_code = 204
                 return response
             else:
-                response = JsonResponse({"errors": "ad_belongs_to_different_user"})
+                response = JsonResponse(
+                    {"errors": "ad_belongs_to_different_user"})
                 response.status_code = 403
                 return response
         else:
-            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response = JsonResponse(
+                {"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
             return response
 
@@ -1193,7 +1222,8 @@ def delete_favourite(request):
             try:
                 data = json.loads(request.body.decode("utf-8"))
             except BaseException:
-                response = JsonResponse({"errors": "unable_to_load_request_body"})
+                response = JsonResponse(
+                    {"errors": "unable_to_load_request_body"})
                 response.status_code = 422
                 return response
             required_fields = ["ad_id"]
@@ -1209,12 +1239,13 @@ def delete_favourite(request):
 
             user = User.objects.get(id=request.user.id)
 
-            ad_to_remove = user.favourite_ads.filter(id = data["ad_id"])
+            ad_to_remove = user.favourite_ads.filter(id=data["ad_id"])
 
             id_to_remove = list(ad_to_remove.values('id'))
 
             if not id_to_remove:
-                response = JsonResponse({"errors": {"delete_failed": "ad_is_not_in_favourites"}})
+                response = JsonResponse(
+                    {"errors": {"delete_failed": "ad_is_not_in_favourites"}})
                 response.status_code = 404
                 return response
 
@@ -1224,8 +1255,8 @@ def delete_favourite(request):
             response.status_code = 204
             return response
 
-
         else:
-            response = JsonResponse({"errors": {"create_failed": "no_user_is_logged_in"}})
+            response = JsonResponse(
+                {"errors": {"create_failed": "no_user_is_logged_in"}})
             response.status_code = 401
             return response

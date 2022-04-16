@@ -24,5 +24,6 @@ urlpatterns = [
     path('latest_ads/', views.latest_ads),
     path('favourite_ads/', views.favourite_ads),
     path('check_email/', views.check_email),
-    path('check_username/', views.check_username)
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('check_username/', views.check_username),
+    path('get_districts/', views.get_districts)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
