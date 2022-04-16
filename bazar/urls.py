@@ -22,5 +22,6 @@ urlpatterns = [
     path('get_image/<name>', views.get_image),
     path('ads/', views.ads),
     path('latest_ads/', views.latest_ads),
-    path('favourite_ads/', views.favourite_ads)
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('favourite_ads/', views.favourite_ads),
+    path('get_districts/', views.get_districts)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
