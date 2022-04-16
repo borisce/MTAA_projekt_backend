@@ -16,6 +16,59 @@ from django.db import models
 
 
 @csrf_exempt
+def check_email(request):
+    if request.method == 'GET':
+
+        error = 0
+
+        email = (request.GET.get('email', default=""))
+
+        email_unique = User.objects.all().filter(Q(email=email)).count()
+        print(email_unique)
+        if email_unique != 0:
+            error += 1
+
+        if error != 0:
+
+            response = HttpResponse()
+            response.status_code = 403
+        else:
+
+            response = HttpResponse()
+
+            response.status_code = 200
+
+        return response
+
+
+@csrf_exempt
+def check_username(request):
+
+    if request.method == 'GET':
+
+        error = 0
+
+        username = (request.GET.get('username', default=""))
+
+        user_name_unique = User.objects.all().filter(Q(username=username)).count()
+
+        if user_name_unique != 0:
+            error += 1
+
+        if error != 0:
+
+            response = HttpResponse()
+            response.status_code = 403
+        else:
+
+            response = HttpResponse()
+
+            response.status_code = 200
+
+        return response
+
+
+@csrf_exempt
 def register(request):
     # POST request
 

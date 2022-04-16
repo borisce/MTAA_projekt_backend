@@ -22,5 +22,7 @@ urlpatterns = [
     path('get_image/<name>', views.get_image),
     path('ads/', views.ads),
     path('latest_ads/', views.latest_ads),
-    path('favourite_ads/', views.favourite_ads)
+    path('favourite_ads/', views.favourite_ads),
+    path('check_email/', views.check_email),
+    path('check_username/', views.check_username)
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
