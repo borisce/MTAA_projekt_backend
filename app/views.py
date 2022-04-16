@@ -323,6 +323,21 @@ def logout(request):
 
 
 @csrf_exempt
+def get_categories(request):
+
+    if request.method == 'GET':
+
+        categories = Items_categories.objects.all().values("id", "name")
+
+        response = HttpResponse(json.dumps(
+            list(categories)), content_type="application/json")
+
+        response.status_code = 200
+
+        return response
+
+
+@csrf_exempt
 def get_districts(request):
 
     if request.method == 'GET':
