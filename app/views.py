@@ -327,7 +327,7 @@ def get_categories(request):
 
     if request.method == 'GET':
 
-        categories = Items_categories.objects.all().values("id", "name")
+        categories = Items_categories.objects.all().values("id", "name", "picture")
 
         response = HttpResponse(json.dumps(
             list(categories)), content_type="application/json")
@@ -397,13 +397,13 @@ def my_profile(request):
 
 
 @csrf_exempt
-def user_profile(request, id):
+def user_profile(request, username):
 
     if request.method == 'GET':
         if request.user.is_authenticated:
 
             errors = []
-            count = User.objects.filter(id=id).count()
+            count = User.objects.filter(username=username).count()
 
             count = int(count)
 
@@ -419,7 +419,8 @@ def user_profile(request, id):
                 response.status_code = 404
                 return response
 
-            user_profile = User.objects.select_related('district').get(id=id)
+            user_profile = User.objects.select_related(
+                'district').get(username=username)
 
             if user_profile.district == None:
 
@@ -710,7 +711,7 @@ def favourite_ads(request):
 
             logged_user = User.objects.get(id=request.user.id)
 
-            favourite = logged_user.favourite_ads.filter(query)[page:page + 10]
+            favourite = logged_user.favourite_ads.filter(query)
             count = logged_user.favourite_ads.filter(query).count()
 
             items = list(favourite.values('id', 'name', 'description', 'prize',
@@ -734,12 +735,7 @@ def favourite_ads(request):
             count = int(count)
             result = {
                 "items": items,
-                "metadata": {
-                    "page": page_number,
-                    "per_page": 10,
-                    "pages_total": max_page,
-                    "records_total": count
-                }
+
             }
 
             response = JsonResponse(result)
@@ -790,7 +786,7 @@ def my_ads(request):
             page = (page-1) * 10
 
             data = Advertisments.objects.filter(
-                owner_id=request.user.id).order_by('-created_at')[page:page + 10]
+                owner_id=request.user.id).order_by('-created_at')
             count = Advertisments.objects.filter(
                 owner_id=request.user.id).count()
 
@@ -810,12 +806,6 @@ def my_ads(request):
             count = int(count)
             result = {
                 "items": items,
-                "metadata": {
-                    "page": page_number,
-                    "per_page": 10,
-                    "pages": max_page,
-                    "total": count
-                }
             }
 
             response = JsonResponse(result)
@@ -1017,7 +1007,7 @@ def add_favourite_ads(request):
             user_profile = User.objects.get(id=request.user.id)
 
             user_profile.favourite_ads.add(ad)
-
+            user_profile.favourite_ads.save()  # skontrolovat
             response = HttpResponse()
             response.status_code = 200
             return response
@@ -1035,6 +1025,7 @@ def update_profile(request):
         if request.user.is_authenticated:
             try:
                 data = json.loads(request.body.decode("utf-8"))
+                print(data)
             except BaseException:
                 response = JsonResponse(
                     {"errors": "unable_to_load_request_body"})
@@ -1049,6 +1040,7 @@ def update_profile(request):
                     errors.append({req: "required"})
             else:
                 if len(errors) != 0:
+
                     response = JsonResponse({"errors": errors})
                     response.status_code = 422
                     return response
@@ -1067,7 +1059,9 @@ def update_profile(request):
             if "phone" not in data:
                 data["phone"] = current_user.phone
             if "district" not in data:
-                district = current_user.district
+                district = Districts.objects.get(
+                    name=current_user.district.name)
+                print(district)
             else:
                 try:
                     district = Districts.objects.get(name=data["district"])
@@ -1079,25 +1073,27 @@ def update_profile(request):
                 """
                             update hesla, emailu bude ked tak samostatny endpoint
                             """
-                try:
-                    User.objects.filter(id=request.user.id).update(
-                        last_name=data["last_name"],
-                        first_name=data["first_name"],
-                        username=data["username"],
-                        district=district,
-                        city=data["city"],
-                        street=data["street"],
-                        zip_code=data["zip_code"],
-                        phone=data["phone"]
-                    )
-                except IntegrityError:
-                    response = JsonResponse(
-                        {"errors": {"update_failed": "invalid_value"}})
-                    response.status_code = 422
-                    return response
-            response = HttpResponse()
-            response.status_code = 201
-            return response
+            try:
+                User.objects.filter(id=request.user.id).update(
+                    last_name=data["last_name"],
+                    first_name=data["first_name"],
+                    username=data["username"],
+                    district=district,
+                    city=data["city"],
+                    street=data["street"],
+                    zip_code=data["zip_code"],
+                    phone=data["phone"]
+                )
+
+                response = HttpResponse()
+                response.status_code = 201
+                return response
+            except IntegrityError:
+                response = JsonResponse(
+                    {"errors": {"update_failed": "invalid_value"}})
+                response.status_code = 422
+                return response
+
         else:
             response = JsonResponse(
                 {"errors": {"create_failed": "no_user_is_logged_in"}})
