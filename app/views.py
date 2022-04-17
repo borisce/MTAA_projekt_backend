@@ -196,8 +196,6 @@ def register(request):
 
             # ak je nejaky parameter vadny alebo nie je zadany vrati sa error
         if error != 0:
-            print(errors)
-            print(data["email"])
             result = {
                 "errors": errors
             }
@@ -350,7 +348,6 @@ def get_districts(request):
         response.status_code = 200
 
         return response
-
 
 @csrf_exempt
 def my_profile(request):
@@ -927,6 +924,7 @@ def create_new_ad(request):
             except models.ObjectDoesNotExist:
                 response = JsonResponse(
                     {"errors": {"create_failed": "category_value_doesnt_exist"}})
+                print(data["category"])
                 response.status_code = 422
                 return response
             try:
@@ -934,6 +932,7 @@ def create_new_ad(request):
             except models.ObjectDoesNotExist:
                 response = JsonResponse(
                     {"errors": {"create_failed": "district_value_doesnt_exist"}})
+
                 response.status_code = 422
                 return response
 
@@ -948,9 +947,13 @@ def create_new_ad(request):
             status = Statuses.objects.get(id=1)
             price = data["price"]
 
-            if not type(price) is int:
+            try:
+                int(price)
+            except models.ObjectDoesNotExist:
                 response = JsonResponse({"errors": {"price": "not number"}})
+                print(type(price))
                 response.status_code = 422
+
                 return response
 
             new = Advertisments(
