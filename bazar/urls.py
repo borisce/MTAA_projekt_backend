@@ -11,13 +11,13 @@ urlpatterns = [
     path('logout/', views.logout),  # done
     path('create_new_ad/', views.create_new_ad),  # done
     path('add_favourite_ads/', views.add_favourite_ads),
-    path('update_profile/', views.update_profile),
+    path('update_profile/', views.update_profile),  # done
     path('update_ad/', views.update_ad),
     path('delete_ad/', views.delete_ad),
     path('delete_favourite/', views.delete_favourite),
-    path('my_profile/', views.my_profile),
+    path('my_profile/', views.my_profile),  # done
     path('user_profile/<username>', views.user_profile),
-    path('my_ads/', views.my_ads),
+    path('my_ads/', views.my_ads),  # done
     path('ad_detail/<int:id>', views.ad_detail),  # reduntant
     path('get_image/<name>', views.get_image),  # done
     path('ads/', views.ads),  # done

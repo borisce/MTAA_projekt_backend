@@ -349,6 +349,7 @@ def get_districts(request):
 
         return response
 
+
 @csrf_exempt
 def my_profile(request):
 
@@ -789,12 +790,13 @@ def my_ads(request):
 
             items = list(data.values('id', 'name', 'description', 'prize',
                                      'picture', 'city', 'street', 'zip_code', 'category__name',
-                                     'district__name', 'status__name'))
+                                     'district__name', 'status__name', 'owner__username'))
 
             for records in items:
                 records['category'] = records.pop('category__name')
                 records['district'] = records.pop('district__name')
                 records['status'] = records.pop('status__name')
+                records['owner'] = records.pop('owner__username')
 
             count = float(count)
 
