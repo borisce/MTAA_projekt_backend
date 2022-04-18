@@ -1053,18 +1053,17 @@ def update_profile(request):
                     {"errors": {"update_failed": "user_doesnt_exist"}})
                 response.status_code = 422
                 return response
-            if "city" not in data:
+            if "city" == None:
                 data["city"] = current_user.city
-            if "street" not in data:
+            if "street" == None:
                 data["street"] = current_user.street
-            if "zip_code" not in data:
+            if "zip_code" == None:
                 data["zip_code"] = current_user.zip_code
-            if "phone" not in data:
+            if "phone" == None:
                 data["phone"] = current_user.phone
             if "district" not in data:
                 district = Districts.objects.get(
                     name=current_user.district.name)
-                print(district)
             else:
                 try:
                     district = Districts.objects.get(name=data["district"])
@@ -1110,6 +1109,7 @@ def update_ad(request):
         if request.user.is_authenticated:
             try:
                 data = json.loads(request.POST["json"])
+                print(data)
             except BaseException:
                 response = JsonResponse(
                     {"errors": "unable_to_load_request_body"})
@@ -1130,7 +1130,8 @@ def update_ad(request):
                 try:
                     ad = Advertisments.objects.get(id=data["ad_id"])
                     district = Districts.objects.get(name=data["district"])
-                    status = Statuses.objects.get(name=data["status"])
+                    status = Statuses.objects.get(name="Dostupný")
+                    category = Items_categories.objects.get(name=data["category"])
                     if ad.deleted_at != None:
                         raise models.ObjectDoesNotExist
                 except models.ObjectDoesNotExist:
@@ -1145,11 +1146,12 @@ def update_ad(request):
                     return response
                 if "file" in request.FILES:
                     file = request.FILES["file"]
+                    print("a")
                 else:
                     file = None
-                if "street" not in data:
+                if data["street"] == None:
                     data["street"] = ad.street
-                if "zip_code" not in data:
+                if data["zip_code"] == None:
                     data["zip_code"] = ad.zip_code
                 try:
                     if not type(data["price"]) is int:
@@ -1165,7 +1167,7 @@ def update_ad(request):
                         city=data["city"],
                         street=data["street"],
                         zip_code=data["zip_code"],
-                        category=data["category"],
+                        category=category,
                         status=status,
                         district=district
                     )
