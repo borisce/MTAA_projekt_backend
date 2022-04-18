@@ -155,18 +155,19 @@ def register(request):
                         zip_code = data[optional_parameters[i]]
                     if i == 3:
                         phone_data = data[optional_parameters[i]]
-                        j = len(phone_data)
-                        if phone_data[0] != '+':
-                            if phone_data[0] < '0' or phone_data[0] > '9':
-                                error += 1
-                                errors.append(
-                                    {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
-                        for k in range(1, j):
-                            if phone_data[k] < '0' or phone_data[k] > '9':
-                                error += 1
-                                errors.append(
-                                    {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
-                        phone = data[optional_parameters[i]]
+                        if phone_data != None:
+                            j = len(phone_data)
+                            if phone_data[0] != '+':
+                                if phone_data[0] < '0' or phone_data[0] > '9':
+                                    error += 1
+                                    errors.append(
+                                        {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
+                            for k in range(1, j):
+                                if phone_data[k] < '0' or phone_data[k] > '9':
+                                    error += 1
+                                    errors.append(
+                                        {"field": optional_parameters[i], "reasons": ["invalid phone number"]})
+                            phone = data[optional_parameters[i]]
                     if i == 4:
                         district_id = None
                         district_name = data[optional_parameters[i]]
@@ -216,7 +217,6 @@ def register(request):
             response = HttpResponse()
 
             response.status_code = 204
-
         return response
 
 
@@ -348,7 +348,6 @@ def get_districts(request):
         response.status_code = 200
 
         return response
-
 
 @csrf_exempt
 def my_profile(request):
@@ -790,13 +789,12 @@ def my_ads(request):
 
             items = list(data.values('id', 'name', 'description', 'prize',
                                      'picture', 'city', 'street', 'zip_code', 'category__name',
-                                     'district__name', 'status__name', 'owner__username'))
+                                     'district__name', 'status__name'))
 
             for records in items:
                 records['category'] = records.pop('category__name')
                 records['district'] = records.pop('district__name')
                 records['status'] = records.pop('status__name')
-                records['owner'] = records.pop('owner__username')
 
             count = float(count)
 
@@ -1030,6 +1028,7 @@ def update_profile(request):
         if request.user.is_authenticated:
             try:
                 data = json.loads(request.body.decode("utf-8"))
+                print(data)
             except BaseException:
                 response = JsonResponse(
                     {"errors": "unable_to_load_request_body"})
@@ -1054,17 +1053,18 @@ def update_profile(request):
                     {"errors": {"update_failed": "user_doesnt_exist"}})
                 response.status_code = 422
                 return response
-            if "city" == None:
+            if "city" not in data:
                 data["city"] = current_user.city
-            if "street" == None:
+            if "street" not in data:
                 data["street"] = current_user.street
-            if "zip_code" == None:
+            if "zip_code" not in data:
                 data["zip_code"] = current_user.zip_code
-            if "phone" == None:
+            if "phone" not in data:
                 data["phone"] = current_user.phone
-            if "district" == None:
+            if "district" not in data:
                 district = Districts.objects.get(
                     name=current_user.district.name)
+                print(district)
             else:
                 try:
                     district = Districts.objects.get(name=data["district"])
@@ -1110,14 +1110,13 @@ def update_ad(request):
         if request.user.is_authenticated:
             try:
                 data = json.loads(request.POST["json"])
-                print(data)
             except BaseException:
                 response = JsonResponse(
                     {"errors": "unable_to_load_request_body"})
                 response.status_code = 422
                 return response
             required_fields = ["ad_id", "name", "description",
-                               "price", "city", "category",  "district"]
+                               "price", "city", "category", "status", "district"]
             optional_fields = ["street", "zip_code"]
             errors = []
             for req in required_fields:
@@ -1131,9 +1130,7 @@ def update_ad(request):
                 try:
                     ad = Advertisments.objects.get(id=data["ad_id"])
                     district = Districts.objects.get(name=data["district"])
-                    status = Statuses.objects.get(name="Dostupný")
-                    category = Items_categories.objects.get(
-                        name=data["category"])
+                    status = Statuses.objects.get(name=data["status"])
                     if ad.deleted_at != None:
                         raise models.ObjectDoesNotExist
                 except models.ObjectDoesNotExist:
@@ -1147,15 +1144,12 @@ def update_ad(request):
                     response.status_code = 403
                     return response
                 if "file" in request.FILES:
-                    print("a")
                     file = request.FILES["file"]
                 else:
                     file = None
-                    if ad.picture != None:
-                        file = ad.picture
-                if data["street"] == None:
+                if "street" not in data:
                     data["street"] = ad.street
-                if data["zip_code"] == None:
+                if "zip_code" not in data:
                     data["zip_code"] = ad.zip_code
                 try:
                     if not type(data["price"]) is int:
@@ -1171,7 +1165,7 @@ def update_ad(request):
                         city=data["city"],
                         street=data["street"],
                         zip_code=data["zip_code"],
-                        category=category,
+                        category=data["category"],
                         status=status,
                         district=district
                     )
