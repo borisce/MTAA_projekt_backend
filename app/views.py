@@ -1149,6 +1149,8 @@ def update_ad(request):
                     file = request.FILES["file"]
                 else:
                     file = None
+                    if ad.picture != None:
+                        file = ad.picture
                 if "street" not in data:
                     data["street"] = ad.street
                 if "zip_code" not in data:

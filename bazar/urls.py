@@ -12,7 +12,7 @@ urlpatterns = [
     path('create_new_ad/', views.create_new_ad),  # done
     path('add_favourite_ads/', views.add_favourite_ads),
     path('update_profile/', views.update_profile),  # done
-    path('update_ad/', views.update_ad),
+    path('update_ad/', views.update_ad),  # done
     path('delete_ad/', views.delete_ad),
     path('delete_favourite/', views.delete_favourite),
     path('my_profile/', views.my_profile),  # done
