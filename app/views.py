@@ -1149,10 +1149,10 @@ def update_ad(request):
                     print("a")
                 else:
                     file = None
-                if data["street"] == None:
-                    data["street"] = ad.street
-                if data["zip_code"] == None:
-                    data["zip_code"] = ad.zip_code
+                if data["street"] == '':
+                    data["street"] = None
+                if data["zip_code"] == '':
+                    data["zip_code"] = None
                 try:
                     if not type(data["price"]) is int:
                         response = JsonResponse(
