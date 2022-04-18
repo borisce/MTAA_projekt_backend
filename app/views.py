@@ -1116,7 +1116,7 @@ def update_ad(request):
                 response.status_code = 422
                 return response
             required_fields = ["ad_id", "name", "description",
-                               "price", "city", "category", "status", "district"]
+                               "price", "city", "category", "district"]
             optional_fields = ["street", "zip_code"]
             errors = []
             for req in required_fields:
