@@ -358,12 +358,16 @@ def my_profile(request):
 
             user_profile = User.objects.select_related(
                 'district').get(id=request.user.id)
+            try:
+                district = user_profile.district.name
+            except:
+                district = None
 
             items = {"user_name": user_profile.username,
                      "first_name": user_profile.first_name,
                      "last_name": user_profile.last_name,
                      "email": user_profile.email,
-                     "district": user_profile.district.name,
+                     "district": district,
                      "city": user_profile.city,
                      "zip_code": user_profile.zip_code,
                      "street": user_profile.street,
@@ -1032,6 +1036,7 @@ def update_profile(request):
                 data = json.loads(request.body.decode("utf-8"))
                 print(data)
             except BaseException:
+                print("xx")
                 response = JsonResponse(
                     {"errors": "unable_to_load_request_body"})
                 response.status_code = 422
@@ -1045,31 +1050,35 @@ def update_profile(request):
                     errors.append({req: "required"})
             else:
                 if len(errors) != 0:
-
+                    print("aa")
                     response = JsonResponse({"errors": errors})
                     response.status_code = 422
                     return response
             current_user = User.objects.get(id=request.user.id)
             if current_user.deleted_at != None:
+                print("affa")
                 response = JsonResponse(
                     {"errors": {"update_failed": "user_doesnt_exist"}})
                 response.status_code = 422
                 return response
-            if "city" == None:
+            if data["city"] == None:
                 data["city"] = current_user.city
-            if "street" == None:
+            if data["street"] == None:
                 data["street"] = current_user.street
-            if "zip_code" == None:
+            if data["zip_code"] == None:
                 data["zip_code"] = current_user.zip_code
-            if "phone" == None:
+            if data["phone"] == None:
                 data["phone"] = current_user.phone
-            if "district" not in data:
-                district = Districts.objects.get(
-                    name=current_user.district.name)
+            if data["district"] == None:
+                try:
+                    district = Districts.objects.get(name=current_user.district.name)
+                except:
+                    district = None
             else:
                 try:
                     district = Districts.objects.get(name=data["district"])
                 except models.ObjectDoesNotExist:
+                    print("aadsdsdsds")
                     response = JsonResponse(
                         {"errors": {"update_failed": "district_value_doesnt_exist"}})
                     response.status_code = 422
