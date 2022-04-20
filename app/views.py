@@ -216,7 +216,7 @@ def register(request):
 
             response = HttpResponse()
 
-            response.status_code = 204
+            response.status_code = 201
         return response
 
 
@@ -967,7 +967,7 @@ def create_new_ad(request):
             )
             new.save()
             response = HttpResponse()
-            response.status_code = 204
+            response.status_code = 201
             return response
 
         else:
@@ -1229,7 +1229,7 @@ def delete_ad(request):
             if ad.owner.id == request.user.id:
                 Advertisments.objects.filter(id=data["ad_id"]).delete()
                 response = HttpResponse()
-                response.status_code = 204
+                response.status_code = 200
                 return response
             else:
                 response = JsonResponse(
@@ -1280,7 +1280,7 @@ def delete_favourite(request):
             user.favourite_ads.remove(id_to_remove[0]['id'])
 
             response = HttpResponse()
-            response.status_code = 204
+            response.status_code = 200
             return response
 
         else:
